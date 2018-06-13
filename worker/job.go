@@ -7,6 +7,7 @@ import (
 	"github.com/qjpcpu/chainflow/conf"
 	"github.com/qjpcpu/chainflow/cursor"
 	"github.com/qjpcpu/chainflow/db"
+	"github.com/qjpcpu/chainflow/network"
 	"github.com/qjpcpu/ethereum/events"
 	"github.com/qjpcpu/log"
 	"math/big"
@@ -48,7 +49,6 @@ func FetchERC20CoinTransfer() error {
 		SetContract(common.Address{}, TransferABI, "Transfer").
 		SetBlockMargin(2).
 		SetFrom(from).
-		SetStep(10000).
 		SetGracefullExit(true).
 		SetProgressChan(progressCh).
 		SetInterval(time.Second*20).
@@ -68,7 +68,9 @@ func FetchERC20CoinTransfer() error {
 	for {
 		select {
 		case data := <-dataCh:
-			getTransferData(data).Save(o)
+			td := getTransferData(data)
+			td.Save(o)
+			td.UpdateGraph()
 		case err1 := <-errCh:
 			log.Errorf("fetcher receive err:%v", err1)
 		case progress := <-progressCh:
@@ -90,8 +92,27 @@ func getTransferData(data events.Event) TransferData {
 	return td
 }
 
+func (td TransferData) UpdateGraph() error {
+	graph, err := network.GetGraphOfToken(td.Contract)
+	if err != nil {
+		return err
+	}
+	defer graph.Close()
+	from := strings.ToLower(td.From)
+	to := strings.ToLower(td.To)
+	graph.AddQuadString(
+		from,
+		network.Pred_Transfer,
+		to,
+	)
+	return nil
+}
+
 func (td TransferData) Save(o orm.Ormer) error {
 	return db.ExecTransaction(o, func() error {
+		contract_addr := strings.ToLower(td.Contract)
+		from := strings.ToLower(td.From)
+		to := strings.ToLower(td.To)
 		if _, err := o.Insert(&db.TokenTransfer{
 			Contract: strings.ToLower(td.Contract),
 			From:     strings.ToLower(td.From),
@@ -102,9 +123,6 @@ func (td TransferData) Save(o orm.Ormer) error {
 		}); err != nil {
 			return err
 		}
-		contract_addr := strings.ToLower(td.Contract)
-		from := strings.ToLower(td.From)
-		to := strings.ToLower(td.To)
 		sql := fmt.Sprintf(`insert ignore into %s(contract,user) values(?,?)`, new(db.TokenBalance).TableName())
 		o.Raw(sql, contract_addr, from).Exec()
 		o.Raw(sql, contract_addr, to).Exec()

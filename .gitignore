@@ -1,4 +1,6 @@
 /log
+.nfs*
+/data
 .DS_Store
 chainflow
 *.conf

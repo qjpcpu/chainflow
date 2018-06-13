@@ -4,5 +4,6 @@
     "LogDir": "./log",
     "EthNodePath": "http://localhost:8545",
     "LogLevel": "debug",
+    "GraphDir": "./data",
     "Listen": ":4100"
 }

@@ -3,14 +3,17 @@ package conf
 import (
 	"encoding/json"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/qjpcpu/ethereum/etherscan"
 	"io/ioutil"
 	"math/big"
 	"os"
+	"strings"
 )
 
 var (
-	config Configuration
-	conn   *ethclient.Client
+	config       Configuration
+	conn         *ethclient.Client
+	EtherscanEnv etherscan.Env
 )
 
 type Configuration struct {
@@ -19,6 +22,7 @@ type Configuration struct {
 	RedisDb     string
 	RedisPwd    string
 	LogDir      string
+	GraphDir    string
 	LogLevel    string
 	EthNodePath string
 	Listen      string
@@ -48,6 +52,11 @@ func (cfg *Configuration) InitEthClients() error {
 	conn, err = ethclient.Dial(cfg.EthNodePath)
 	if err != nil {
 		return err
+	}
+	if strings.Contains(cfg.EthNodePath, "ropsten") {
+		EtherscanEnv = etherscan.Ropsten
+	} else {
+		EtherscanEnv = etherscan.Online
 	}
 	return nil
 }

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/qjpcpu/chainflow/conf"
+	"github.com/qjpcpu/chainflow/ctrls"
 	"github.com/qjpcpu/chainflow/db"
+	"github.com/qjpcpu/chainflow/network"
 	"github.com/qjpcpu/chainflow/worker"
 	"github.com/qjpcpu/log"
 	"github.com/urfave/cli"
@@ -60,6 +62,12 @@ func main() {
 func startServer() {
 	cfg := conf.Get()
 	router := gin.Default()
+
+	router.Use(ctrls.AllowCORS)
+	router.GET("/tx/pending", ctrls.GetPendingTx)
+
+	router.GET("/token/topbalance", ctrls.GetTopBalance)
+
 	router.Run(cfg.Listen)
 }
 
@@ -88,5 +96,6 @@ func initCmd(c *cli.Context) error {
 		return err
 	}
 	db.SetDBLog(filepath.Join(cfg.LogDir, "mysql.log"))
+	network.SetGraphDir(cfg.GraphDir)
 	return nil
 }
