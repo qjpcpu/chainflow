@@ -13,10 +13,20 @@ import (
 	"sync"
 )
 
+type Direction int
+
+const (
+	Both Direction = iota
+	In
+	Out
+)
+
 var storeHolder = &sync.Mutex{}
 
 type NetworkStore struct {
 	*cayley.Handle
+	storePath string
+	token     string
 }
 
 var tokenGraph = make(map[string]struct{})
@@ -52,8 +62,20 @@ func GetGraphOfToken(contractAddr string) (*NetworkStore, error) {
 		log.Error("open graph db fail", err)
 		return nil, err
 	}
-	ns := &NetworkStore{Handle: store}
+	ns := &NetworkStore{
+		Handle:    store,
+		storePath: name,
+		token:     contractAddr,
+	}
 	return ns, nil
+}
+
+func (ns *NetworkStore) Purge() error {
+	storeHolder.Lock()
+	defer storeHolder.Unlock()
+	ns.Close()
+	delete(tokenGraph, ns.token)
+	return os.RemoveAll(ns.storePath)
 }
 
 func (ns *NetworkStore) AddQuadString(subject, predicate, object string) *NetworkStore {
@@ -74,33 +96,85 @@ type Node struct {
 
 type Nodes []Node
 
-func (ns *NetworkStore) NetworkOf(subject, predicate string, depth int) Nodes {
+type Path struct {
+	From string
+	To   string
+}
+
+func (ns *NetworkStore) NetworkOf(subject, predicate string, depth int, direction Direction) []Path {
 	if depth < 0 {
 		return nil
 	}
-	m := cayley.StartMorphism().Both(quad.String(predicate))
+	m := cayley.StartMorphism().Tag("from")
+	switch direction {
+	case In:
+		m = m.In(quad.String(predicate))
+	case Out:
+		m = m.Out(quad.String(predicate))
+	default:
+		m = m.Both(quad.String(predicate))
+	}
 	tags := make([]string, depth)
 	p1 := cayley.StartPath(ns, quad.String(subject)).FollowRecursive(m, depth, tags)
 	it, _ := p1.BuildIterator().Optimize()
 	it, _ = ns.OptimizeIterator(it)
 	defer it.Close()
 	ctx := context.TODO()
-	var nodes Nodes
+	var paths []Path
 	for it.Next(ctx) {
 		tt := make(map[string]graph.Value)
 		it.TagResults(tt)
 		value := ns.NameOf(it.Result())
-		if id := quad.NativeOf(value).(string); id != subject {
-			nodes = append(nodes, Node{
-				Id:    id,
-				Depth: ns.tagAsInt(tt, ""),
+		id := quad.NativeOf(value).(string)
+		var ph Path
+		switch direction {
+		case In:
+			ph.To = quad.NativeOf(ns.NameOf(tt["from"])).(string)
+			ph.From = id
+		case Out:
+			ph.From = quad.NativeOf(ns.NameOf(tt["from"])).(string)
+			ph.To = id
+		default:
+			ph.From = quad.NativeOf(ns.NameOf(tt["from"])).(string)
+			ph.To = id
+		}
+		paths = append(paths, ph)
+	}
+	return paths
+}
+
+func (ns *NetworkStore) FindPath(subject, predicate, object string, max_depts ...int) []Path {
+	depth := 100
+	if len(max_depts) > 0 && max_depts[0] > 0 && max_depts[0] <= 100 {
+		depth = max_depts[0]
+	}
+	m := cayley.StartMorphism().Out(quad.String(predicate))
+	tags := make([]string, depth)
+	p1 := cayley.StartPath(ns, quad.String(subject)).FollowRecursive(m, depth, tags).Is(quad.String(object))
+	it, _ := p1.BuildIterator().Optimize()
+	it, _ = ns.OptimizeIterator(it)
+	defer it.Close()
+	ctx := context.TODO()
+	var paths []Path
+	var realDepth int
+	for it.Next(ctx) {
+		tt := make(map[string]graph.Value)
+		it.TagResults(tt)
+		realDepth = ns.tagAsInt(tt, "")
+	}
+	if realDepth > 0 {
+		nodes := ns.findExactPath(subject, predicate, object, realDepth)
+		for i := 0; i < len(nodes)-1; i++ {
+			paths = append(paths, Path{
+				From: nodes[i].Id,
+				To:   nodes[i+1].Id,
 			})
 		}
 	}
-	return nodes
+	return paths
 }
 
-func (ns *NetworkStore) FindPath(subject, predicate, object string, depth int) Nodes {
+func (ns *NetworkStore) findExactPath(subject, predicate, object string, depth int) Nodes {
 	var nodes Nodes
 	p1 := cayley.StartPath(ns, quad.String(subject))
 	for i := 1; i <= depth; i++ {

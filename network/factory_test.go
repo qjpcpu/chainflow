@@ -68,22 +68,29 @@ func TestQueryNetwork(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer store.Purge()
 	// add path
-	store.AddBothQuadString("A", Pred_Transfer, "B").
-		AddBothQuadString("A", Pred_Transfer, "C").
-		AddBothQuadString("A", Pred_Transfer, "D").
-		AddBothQuadString("A", Pred_Transfer, "E").
-		AddBothQuadString("E", Pred_Transfer, "F").
-		AddQuadString("B", Pred_Transfer, "G").
-		AddQuadString("E", Pred_Transfer, "G").
-		AddQuadString("J", Pred_Transfer, "G").
-		AddBothQuadString("H", Pred_Transfer, "I")
-	nodes := store.NetworkOf("A", Pred_Transfer, 2)
+	store.AddQuadString("A", Pred_Transfer, "B").
+		AddQuadString("B", Pred_Transfer, "C").
+		AddQuadString("B", Pred_Transfer, "E").
+		AddQuadString("B", Pred_Transfer, "F").
+		AddQuadString("F", Pred_Transfer, "G").
+		AddQuadString("G", Pred_Transfer, "H").
+		AddQuadString("H", Pred_Transfer, "M").
+		AddQuadString("M", Pred_Transfer, "A").
+		AddQuadString("D", Pred_Transfer, "B")
+
+	nodes := store.NetworkOf("B", Pred_Transfer, 10, Out)
 	for i, n := range nodes {
-		t.Log(i+1, ":", n)
+		t.Logf("%v:%+v", i, n)
 	}
-	store.SiblingOf("A", Pred_Transfer)
+	t.Log("======")
+	paths := store.FindPath("A", Pred_Transfer, "M")
+	for _, p := range paths {
+		t.Logf("%+v", p)
+	}
 }
+
 func TestSibling(t *testing.T) {
 	store, err := GetGraphOfToken("BTC")
 	if err != nil {
@@ -111,6 +118,6 @@ func TestFollow(t *testing.T) {
 		AddQuadString("C", Pred_Transfer, "D").
 		AddQuadString("C", Pred_Transfer, "E").
 		AddQuadString("H", Pred_Transfer, "I")
-	nodes := store.FindPath("A", Pred_Transfer, "A", 0)
+	nodes := store.FindPath("A", Pred_Transfer, "A")
 	t.Log(nodes)
 }
