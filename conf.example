@@ -1,0 +1,8 @@
+{
+    "MysqlConn": "root:root@tcp(10.0.2.2:3306)/funny?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai",
+    "Redisconn": "127.0.0.1:6379",
+    "LogDir": "./log",
+    "EthNodePath": "http://localhost:8545",
+    "LogLevel": "debug",
+    "Listen": ":4100"
+}
