@@ -12,7 +12,8 @@ type TokenTransfer struct {
 	Contract string `json:"contract"`
 	From     string `json:"from"`
 	To       string `json:"to"`
-	Value    uint64 `json:"value"`
+	Value    string `json:"value"`
+	Digits   int    `json:"digits"`
 	Tx       string `json:"tx"`
 	Block    uint64 `json:"block"`
 }
@@ -25,7 +26,8 @@ type TokenBalance struct {
 	Id       uint64 `orm:"pk;auto"`
 	Contract string
 	User     string
-	Amount   int64
+	Amount   string
+	Digits   int
 	Block    uint64
 }
 

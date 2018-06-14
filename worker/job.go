@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"fmt"
 	"github.com/astaxie/beego/orm"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/qjpcpu/chainflow/conf"
@@ -112,39 +111,72 @@ func (td TransferData) UpdateGraph() error {
 }
 
 func (td TransferData) Save(o orm.Ormer) error {
-	return db.ExecTransaction(o, func() error {
-		contract_addr := strings.ToLower(td.Contract)
-		from := strings.ToLower(td.From)
-		to := strings.ToLower(td.To)
-		if _, err := o.Insert(&db.TokenTransfer{
-			Contract: strings.ToLower(td.Contract),
-			From:     strings.ToLower(td.From),
-			To:       strings.ToLower(td.To),
-			Value:    td.Value.Uint64(),
-			Tx:       strings.ToLower(td.Tx),
-			Block:    td.Block,
-		}); err != nil {
-			return err
-		}
-		sql := fmt.Sprintf(`insert ignore into %s(contract,user) values(?,?)`, new(db.TokenBalance).TableName())
-		o.Raw(sql, contract_addr, from).Exec()
-		o.Raw(sql, contract_addr, to).Exec()
-		if _, err := o.QueryTable(new(db.TokenBalance)).
+	contract_addr := strings.ToLower(td.Contract)
+	from := strings.ToLower(td.From)
+	to := strings.ToLower(td.To)
+	if _, err := o.Insert(&db.TokenTransfer{
+		Contract: strings.ToLower(td.Contract),
+		From:     strings.ToLower(td.From),
+		To:       strings.ToLower(td.To),
+		Value:    td.Value.String(),
+		Digits:   len(td.Value.String()),
+		Tx:       strings.ToLower(td.Tx),
+		Block:    td.Block,
+	}); err != nil {
+		return err
+	}
+	// update from
+	if from != "0x0000000000000000000000000000000000000000" {
+		var balance db.TokenBalance
+		if err := o.QueryTable(new(db.TokenBalance)).
 			Filter("contract", contract_addr).
-			Filter("user", to).Update(orm.Params{
-			"amount": orm.ColValue(orm.ColAdd, td.Value.Uint64()),
-			"block":  td.Block,
-		}); err != nil {
-			return err
+			Filter("user", from).
+			One(&balance); err != nil {
+			o.Insert(&db.TokenBalance{
+				Contract: contract_addr,
+				User:     from,
+				Amount:   "-" + td.Value.String(),
+				Digits:   len(td.Value.String()),
+				Block:    td.Block,
+			})
+		} else {
+			amount, _ := new(big.Int).SetString(balance.Amount, 10)
+			amount.Sub(amount, td.Value)
+			o.QueryTable(new(db.TokenBalance)).
+				Filter("contract", contract_addr).
+				Filter("user", from).Update(orm.Params{
+				"amount": amount.String(),
+				"digits": len(amount.String()),
+				"block":  td.Block,
+			})
 		}
-		if _, err := o.QueryTable(new(db.TokenBalance)).
+	}
+
+	// update to
+	if to != "0x0000000000000000000000000000000000000000" {
+		var balance db.TokenBalance
+		if err := o.QueryTable(new(db.TokenBalance)).
 			Filter("contract", contract_addr).
-			Filter("user", from).Update(orm.Params{
-			"amount": orm.ColValue(orm.ColMinus, td.Value.Uint64()),
-			"block":  td.Block,
-		}); err != nil {
-			return err
+			Filter("user", to).
+			One(&balance); err != nil {
+			o.Insert(&db.TokenBalance{
+				Contract: contract_addr,
+				User:     to,
+				Amount:   td.Value.String(),
+				Digits:   len(td.Value.String()),
+				Block:    td.Block,
+			})
+		} else {
+			amount, _ := new(big.Int).SetString(balance.Amount, 10)
+			amount.Add(amount, td.Value)
+			o.QueryTable(new(db.TokenBalance)).
+				Filter("contract", contract_addr).
+				Filter("user", from).Update(orm.Params{
+				"amount": amount.String(),
+				"digits": len(amount.String()),
+				"block":  td.Block,
+			})
 		}
-		return nil
-	})
+	}
+	return nil
 }
