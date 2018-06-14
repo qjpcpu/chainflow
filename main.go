@@ -68,6 +68,8 @@ func startServer() {
 
 	router.GET("/token/topbalance", ctrls.GetTopBalance)
 
+	router.GET("/token/network", ctrls.QueryNetwork)
+
 	router.Run(cfg.Listen)
 }
 
