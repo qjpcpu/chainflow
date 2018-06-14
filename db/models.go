@@ -8,13 +8,13 @@ func init() {
 }
 
 type TokenTransfer struct {
-	Id       uint64 `orm:"pk;auto"`
-	Contract string
-	From     string
-	To       string
-	Value    uint64
-	Tx       string
-	Block    uint64
+	Id       uint64 `orm:"pk;auto" json:"id"`
+	Contract string `json:"contract"`
+	From     string `json:"from"`
+	To       string `json:"to"`
+	Value    uint64 `json:"value"`
+	Tx       string `json:"tx"`
+	Block    uint64 `json:"block"`
 }
 
 func (t *TokenTransfer) TableName() string {

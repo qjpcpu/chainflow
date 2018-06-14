@@ -93,13 +93,16 @@ func getTransferData(data events.Event) TransferData {
 }
 
 func (td TransferData) UpdateGraph() error {
+	from := strings.ToLower(td.From)
+	to := strings.ToLower(td.To)
+	if from == "0x0000000000000000000000000000000000000000" || to == "0x0000000000000000000000000000000000000000" {
+		return nil
+	}
 	graph, err := network.GetGraphOfToken(td.Contract)
 	if err != nil {
 		return err
 	}
 	defer graph.Close()
-	from := strings.ToLower(td.From)
-	to := strings.ToLower(td.To)
 	graph.AddQuadString(
 		from,
 		network.Pred_Transfer,

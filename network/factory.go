@@ -97,8 +97,8 @@ type Node struct {
 type Nodes []Node
 
 type Path struct {
-	From string
-	To   string
+	From string `json:"from"`
+	To   string `json:"to"`
 }
 
 func (ns *NetworkStore) NetworkOf(subject, predicate string, depth int, direction Direction) []Path {
