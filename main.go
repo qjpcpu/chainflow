@@ -64,11 +64,18 @@ func startServer() {
 	router := gin.Default()
 
 	router.Use(ctrls.AllowCORS)
-	router.GET("/tx/pending", ctrls.GetPendingTx)
+	txRouter := router.Group("/tx")
+	{
+		txRouter.GET("/pending", ctrls.GetPendingTx)
+		txRouter.POST("/calc_hash", ctrls.CalcTxHash)
+		txRouter.POST("/send_raw_tx", ctrls.SendRawTx)
+	}
 
-	router.GET("/token/topbalance", ctrls.GetTopBalance)
-
-	router.GET("/token/network", ctrls.QueryNetwork)
+	tokenRouter := router.Group("/token")
+	{
+		tokenRouter.GET("/topbalance", ctrls.GetTopBalance)
+		tokenRouter.GET("/network", ctrls.QueryNetwork)
+	}
 
 	router.Run(cfg.Listen)
 }
