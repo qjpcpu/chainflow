@@ -8,7 +8,7 @@ func init() {
 }
 
 type TokenTransfer struct {
-	Id       uint64 `orm:"pk;auto" json:"id"`
+	Id       uint64 `orm:"pk;auto" json:"-"`
 	Contract string `json:"contract"`
 	From     string `json:"from"`
 	To       string `json:"to"`

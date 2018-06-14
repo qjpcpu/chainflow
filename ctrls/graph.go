@@ -91,6 +91,6 @@ func QueryNetwork(c *gin.Context) {
 		log.Errorf("get network fail:%v", err)
 		c.JSON(http.StatusOK, gin.H{"code": 1, "msg": err.Error()})
 	} else {
-		c.JSON(http.StatusOK, gin.H{"code": 0, "txs": txs})
+		c.JSON(http.StatusOK, gin.H{"code": 0, "txs": txs, "total": len(txs)})
 	}
 }
