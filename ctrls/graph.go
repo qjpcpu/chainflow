@@ -41,6 +41,7 @@ type NetworkNode struct {
 	Id      string `json:"id"`
 	Cluster string `json:"cluster"`
 	Title   string `json:"title"`
+	Type    string `json:"type"`
 	Root    bool   `json:"root"`
 }
 
@@ -98,18 +99,34 @@ func QueryNetwork(c *gin.Context) {
 			break
 		}
 
+		rootType := func(isRoot bool) string {
+			if isRoot {
+				return "philosopher"
+			} else {
+				return ""
+			}
+		}
+		shortName := func(longname string) string {
+			if len(longname) > 5 {
+				return string(longname[:5]) + "..."
+			} else {
+				return longname
+			}
+		}
 		for i, p := range paths {
 			nodes[p.From] = NetworkNode{
 				Id:      p.From,
 				Cluster: "1",
-				Title:   p.From,
+				Title:   shortName(p.From),
 				Root:    p.From == address,
+				Type:    rootType(p.From == address),
 			}
 			nodes[p.To] = NetworkNode{
 				Id:      p.To,
 				Cluster: "1",
-				Title:   p.To,
+				Title:   shortName(p.To),
 				Root:    p.To == address,
+				Type:    rootType(p.To == address),
 			}
 			switch direction {
 			case network.In:
@@ -123,7 +140,7 @@ func QueryNetwork(c *gin.Context) {
 					Target: p.To,
 				})
 			}
-			if i > 100 {
+			if i > 50 {
 				break
 			}
 		}
