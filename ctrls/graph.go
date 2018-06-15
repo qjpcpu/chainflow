@@ -156,3 +156,42 @@ func QueryNetwork(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"code": 0, "network": ng, "contract": contract})
 	}
 }
+
+func QueryHotTx(c *gin.Context) {
+	contract := strings.ToLower(c.Query("contract"))
+	from := strings.ToLower(c.Query("from"))
+	to := strings.ToLower(c.Query("to"))
+	var err error
+	var max, hot db.TokenTransfer
+	for loop := true; loop; loop = false {
+		if contract == "" || from == "" || to == "" {
+			err = errors.New("params err")
+			break
+		}
+		o := db.GetOrm()
+		if err = o.QueryTable(new(db.TokenTransfer)).
+			Filter("contract", contract).
+			Filter("from", from).
+			Filter("to", to).
+			OrderBy("-block").
+			Limit(1).
+			One(&hot); err != nil {
+			break
+		}
+		if err = o.QueryTable(new(db.TokenTransfer)).
+			Filter("contract", contract).
+			Filter("from", from).
+			Filter("to", to).
+			OrderBy("-digits", "-value").
+			Limit(1).
+			One(&max); err != nil {
+			break
+		}
+	}
+	if err != nil {
+		log.Errorf("get hot tx fail:%v", err)
+		c.JSON(http.StatusOK, gin.H{"code": 1, "msg": err.Error()})
+	} else {
+		c.JSON(http.StatusOK, gin.H{"code": 0, "hot": hot, "max": max})
+	}
+}

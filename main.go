@@ -69,6 +69,7 @@ func startServer() {
 		txRouter.GET("/pending", ctrls.GetPendingTx)
 		txRouter.POST("/calc_hash", ctrls.CalcTxHash)
 		txRouter.POST("/send_raw_tx", ctrls.SendRawTx)
+		txRouter.GET("/hot_tx", ctrls.QueryHotTx)
 	}
 
 	tokenRouter := router.Group("/token")
