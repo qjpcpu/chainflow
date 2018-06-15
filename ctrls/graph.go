@@ -92,6 +92,9 @@ func QueryNetwork(c *gin.Context) {
 		paths := ns.NetworkOf(strings.ToLower(address), network.Pred_Transfer, 2, direction)
 		tmEnd = time.Now()
 		log.Infof("query cayley cost:%v,get %v path", tmEnd.Sub(tmStart), len(paths))
+		if len(paths) == 0 {
+			break
+		}
 		var txs []db.TokenTransfer
 		o := db.GetOrm()
 		tmStart = time.Now()
