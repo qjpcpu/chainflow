@@ -1,5 +1,11 @@
 package db
 
+import (
+	"crypto/md5"
+	"fmt"
+	"strings"
+)
+
 func init() {
 	RegisterModel(
 		new(TokenTransfer),
@@ -16,6 +22,7 @@ type TokenTransfer struct {
 	Digits   int    `json:"digits"`
 	Tx       string `json:"tx"`
 	Block    uint64 `json:"block"`
+	FromTo   string `json:"-"`
 }
 
 func (t *TokenTransfer) TableName() string {
@@ -33,4 +40,8 @@ type TokenBalance struct {
 
 func (t *TokenBalance) TableName() string {
 	return "token_balance"
+}
+
+func FromTo(from, to string) string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(strings.ToLower(from)+strings.ToLower(to))))
 }

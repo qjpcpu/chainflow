@@ -118,6 +118,7 @@ func (td TransferData) Save(o orm.Ormer) error {
 		Contract: strings.ToLower(td.Contract),
 		From:     strings.ToLower(td.From),
 		To:       strings.ToLower(td.To),
+		FromTo:   db.FromTo(td.From, td.To),
 		Value:    td.Value.String(),
 		Digits:   len(td.Value.String()),
 		Tx:       strings.ToLower(td.Tx),

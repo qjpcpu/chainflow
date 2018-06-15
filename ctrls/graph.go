@@ -2,6 +2,7 @@ package ctrls
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/qjpcpu/chainflow/db"
 	"github.com/qjpcpu/chainflow/network"
@@ -90,11 +91,12 @@ func QueryNetwork(c *gin.Context) {
 		tmStart = time.Now()
 		paths := ns.NetworkOf(strings.ToLower(address), network.Pred_Transfer, 2, direction)
 		tmEnd = time.Now()
-		log.Infof("query cayley cost:%v", tmEnd.Sub(tmStart))
-		txs := make([]db.TokenTransfer, len(paths))
+		log.Infof("query cayley cost:%v,get %v path", tmEnd.Sub(tmStart), len(paths))
+		var txs []db.TokenTransfer
 		o := db.GetOrm()
 		tmStart = time.Now()
-		for i, p := range paths {
+		var fromto []interface{}
+		for _, p := range paths {
 			nodes[p.From] = NetworkNode{
 				Id:      p.From,
 				Cluster: "1",
@@ -109,39 +111,27 @@ func QueryNetwork(c *gin.Context) {
 			}
 			switch direction {
 			case network.In:
-				if err := o.QueryTable(new(db.TokenTransfer)).
-					Filter("from", p.To).
-					Filter("to", p.From).
-					OrderBy("-block").
-					Limit(1).
-					One(&txs[i]); err == nil {
-					ng.Edges = append(ng.Edges, NetworkEdge{
-						Source: p.To,
-						Target: p.From,
-						Tx:     txs[i].Tx,
-						Amount: txs[i].Value,
-					})
-				}
+				fromto = append(fromto, db.FromTo(p.To, p.From))
 			default:
-				if err := o.QueryTable(new(db.TokenTransfer)).
-					Filter("from", p.From).
-					Filter("to", p.To).
-					OrderBy("-block").
-					Limit(1).
-					One(&txs[i]); err == nil {
-					ng.Edges = append(ng.Edges, NetworkEdge{
-						Source: p.From,
-						Target: p.To,
-						Tx:     txs[i].Tx,
-						Amount: txs[i].Value,
-					})
-				}
+				fromto = append(fromto, db.FromTo(p.From, p.To))
 			}
+		}
+		sql := fmt.Sprintf("select * from token_transfer where id in (select max(id) from token_transfer where contract=? and from_to in (%s) group by from_to)", strings.TrimSuffix(strings.Repeat("?,", len(fromto)), ","))
+		if _, err = o.Raw(sql, fromto...).QueryRows(&txs); err != nil {
+			break
 		}
 		tmEnd = time.Now()
 		log.Infof("query db cost:%v", tmEnd.Sub(tmStart))
 		for _, node := range nodes {
 			ng.Nodes = append(ng.Nodes, node)
+		}
+		for _, tx := range txs {
+			ng.Edges = append(ng.Edges, NetworkEdge{
+				Source: tx.From,
+				Target: tx.To,
+				Tx:     tx.Tx,
+				Amount: tx.Value,
+			})
 		}
 	}
 	if err != nil {
