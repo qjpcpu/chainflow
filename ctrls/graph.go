@@ -85,7 +85,7 @@ func QueryNetwork(c *gin.Context) {
 			direction = network.Out
 		}
 		nodes := make(map[string]NetworkNode)
-		paths := ns.NetworkOf(strings.ToLower(address), network.Pred_Transfer, 5, direction)
+		paths := ns.NetworkOf(strings.ToLower(address), network.Pred_Transfer, 3, direction)
 		txs := make([]db.TokenTransfer, len(paths))
 		o := db.GetOrm()
 		for i, p := range paths {
