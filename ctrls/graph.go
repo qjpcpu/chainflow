@@ -117,6 +117,7 @@ func QueryNetwork(c *gin.Context) {
 			}
 		}
 		sql := fmt.Sprintf("select * from token_transfer where id in (select max(id) from token_transfer where contract=? and from_to in (%s) group by from_to)", strings.TrimSuffix(strings.Repeat("?,", len(fromto)), ","))
+		fromto = append([]interface{}{strings.ToLower(contract)}, fromto...)
 		if _, err = o.Raw(sql, fromto...).QueryRows(&txs); err != nil {
 			break
 		}
