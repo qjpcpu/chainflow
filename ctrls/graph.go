@@ -127,6 +127,9 @@ func QueryNetwork(c *gin.Context) {
 			if end > len(fromto) {
 				end = len(fromto)
 			}
+			if offset >= end {
+				break LOOP
+			}
 			sql := fmt.Sprintf("select * from token_transfer where id in (select max(id) from token_transfer where contract=? and from_to in (%s) group by from_to)", strings.TrimSuffix(strings.Repeat("?,", end-offset), ","))
 			args := append([]interface{}{strings.ToLower(contract)}, fromto[offset:end]...)
 			var ntxs []db.TokenTransfer
