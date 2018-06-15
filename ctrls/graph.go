@@ -36,16 +36,35 @@ func GetTopBalance(c *gin.Context) {
 	}
 }
 
+type NetworkNode struct {
+	Id      string `json:"id"`
+	Cluster string `json:"cluster"`
+	Title   string `json:"title"`
+	Root    bool   `json:"root"`
+}
+
+type NetworkEdge struct {
+	Source string `json:"source"`
+	Target string `json:"target"`
+	Amount string `json:"relatedness"`
+	Tx     string `json:"tx"`
+}
+
+type NetworkGraph struct {
+	Nodes []NetworkNode `json:"nodes"`
+	Edges []NetworkEdge `json:"edges"`
+}
+
 func QueryNetwork(c *gin.Context) {
 	var err error
-	var txs []db.TokenTransfer
+	var ng NetworkGraph
 	for loop := true; loop; loop = false {
 		contract := c.Query("contract")
 		if contract == "" {
 			err = errors.New("no contract")
 			break
 		}
-		address := c.Query("address")
+		address := strings.ToLower(c.Query("address"))
 		if address == "" {
 			err = errors.New("no address")
 			break
@@ -65,32 +84,62 @@ func QueryNetwork(c *gin.Context) {
 		default:
 			direction = network.Out
 		}
+		nodes := make(map[string]NetworkNode)
 		paths := ns.NetworkOf(strings.ToLower(address), network.Pred_Transfer, 5, direction)
-		txs = make([]db.TokenTransfer, len(paths))
+		txs := make([]db.TokenTransfer, len(paths))
 		o := db.GetOrm()
 		for i, p := range paths {
+			nodes[p.From] = NetworkNode{
+				Id:      p.From,
+				Cluster: "1",
+				Title:   p.From,
+				Root:    p.From == address,
+			}
+			nodes[p.To] = NetworkNode{
+				Id:      p.To,
+				Cluster: "1",
+				Title:   p.To,
+				Root:    p.To == address,
+			}
 			switch direction {
 			case network.In:
-				o.QueryTable(new(db.TokenTransfer)).
+				if err := o.QueryTable(new(db.TokenTransfer)).
 					Filter("from", p.To).
 					Filter("to", p.From).
 					OrderBy("-block").
 					Limit(1).
-					One(&txs[i])
+					One(&txs[i]); err == nil {
+					ng.Edges = append(ng.Edges, NetworkEdge{
+						Source: p.To,
+						Target: p.From,
+						Tx:     txs[i].Tx,
+						Amount: txs[i].Value,
+					})
+				}
 			default:
-				o.QueryTable(new(db.TokenTransfer)).
+				if err := o.QueryTable(new(db.TokenTransfer)).
 					Filter("from", p.From).
 					Filter("to", p.To).
 					OrderBy("-block").
 					Limit(1).
-					One(&txs[i])
+					One(&txs[i]); err == nil {
+					ng.Edges = append(ng.Edges, NetworkEdge{
+						Source: p.From,
+						Target: p.To,
+						Tx:     txs[i].Tx,
+						Amount: txs[i].Value,
+					})
+				}
 			}
+		}
+		for _, node := range nodes {
+			ng.Nodes = append(ng.Nodes, node)
 		}
 	}
 	if err != nil {
 		log.Errorf("get network fail:%v", err)
 		c.JSON(http.StatusOK, gin.H{"code": 1, "msg": err.Error()})
 	} else {
-		c.JSON(http.StatusOK, gin.H{"code": 0, "txs": txs, "total": len(txs)})
+		c.JSON(http.StatusOK, gin.H{"code": 0, "network": ng})
 	}
 }
