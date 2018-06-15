@@ -8,6 +8,7 @@ import (
 	"github.com/qjpcpu/log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func GetTopBalance(c *gin.Context) {
@@ -85,9 +86,14 @@ func QueryNetwork(c *gin.Context) {
 			direction = network.Out
 		}
 		nodes := make(map[string]NetworkNode)
-		paths := ns.NetworkOf(strings.ToLower(address), network.Pred_Transfer, 3, direction)
+		var tmStart, tmEnd time.Time
+		tmStart = time.Now()
+		paths := ns.NetworkOf(strings.ToLower(address), network.Pred_Transfer, 2, direction)
+		tmEnd = time.Now()
+		log.Infof("query cayley cost:%v", tmEnd.Sub(tmStart))
 		txs := make([]db.TokenTransfer, len(paths))
 		o := db.GetOrm()
+		tmStart = time.Now()
 		for i, p := range paths {
 			nodes[p.From] = NetworkNode{
 				Id:      p.From,
@@ -132,6 +138,8 @@ func QueryNetwork(c *gin.Context) {
 				}
 			}
 		}
+		tmEnd = time.Now()
+		log.Infof("query db cost:%v", tmEnd.Sub(tmStart))
 		for _, node := range nodes {
 			ng.Nodes = append(ng.Nodes, node)
 		}
