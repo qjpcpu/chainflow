@@ -58,7 +58,10 @@ type NetworkGraph struct {
 
 func QueryNetwork(c *gin.Context) {
 	var err error
-	var ng NetworkGraph
+	var ng NetworkGraph = NetworkGraph{
+		Nodes: make([]NetworkNode, 0),
+		Edges: make([]NetworkEdge, 0),
+	}
 	contract := strings.ToLower(c.Query("contract"))
 	for loop := true; loop; loop = false {
 		if contract == "" {
