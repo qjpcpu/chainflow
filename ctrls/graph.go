@@ -134,7 +134,7 @@ func QueryNetwork(c *gin.Context) {
 				break LOOP
 			}
 			txs = append(txs, ntxs...)
-			if end >= len(fromto) {
+			if end >= len(fromto) || offset+step >= len(fromto) {
 				break LOOP
 			}
 			offset += step
