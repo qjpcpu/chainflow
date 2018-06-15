@@ -104,7 +104,9 @@ func initCmd(c *cli.Context) error {
 	if err := db.InitOrm(cfg.MysqlConn); err != nil {
 		return err
 	}
-	db.SetDBLog(filepath.Join(cfg.LogDir, "mysql.log"))
+	if c.Command.Name == "http" {
+		db.SetDBLog(filepath.Join(cfg.LogDir, "mysql.log"))
+	}
 	network.SetGraphDir(cfg.GraphDir)
 	return nil
 }
