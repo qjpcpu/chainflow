@@ -117,9 +117,10 @@ func QueryNetwork(c *gin.Context) {
 			}
 		}
 		offset := 0
+		step := 100
 	LOOP:
 		for {
-			end := offset + 1000
+			end := offset + step
 			if end > len(fromto) {
 				end = len(fromto)
 			}
@@ -133,7 +134,7 @@ func QueryNetwork(c *gin.Context) {
 			if end >= len(fromto) {
 				break LOOP
 			}
-			offset += 1000
+			offset += step
 		}
 		if err != nil {
 			break
