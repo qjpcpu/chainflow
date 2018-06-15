@@ -98,7 +98,7 @@ func QueryNetwork(c *gin.Context) {
 			break
 		}
 
-		for _, p := range paths {
+		for i, p := range paths {
 			nodes[p.From] = NetworkNode{
 				Id:      p.From,
 				Cluster: "1",
@@ -122,6 +122,9 @@ func QueryNetwork(c *gin.Context) {
 					Source: p.From,
 					Target: p.To,
 				})
+			}
+			if i > 100 {
+				break
 			}
 		}
 
