@@ -92,7 +92,7 @@ func QueryNetwork(c *gin.Context) {
 		nodes := make(map[string]NetworkNode)
 		var tmStart, tmEnd time.Time
 		tmStart = time.Now()
-		paths := ns.NetworkOf(strings.ToLower(address), network.Pred_Transfer, 2, direction)
+		paths := ns.NetworkOf(strings.ToLower(address), network.Pred_Transfer, 3, direction)
 		tmEnd = time.Now()
 		log.Infof("query cayley cost:%v,get %v path", tmEnd.Sub(tmStart), len(paths))
 		if len(paths) == 0 {
