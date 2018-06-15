@@ -116,9 +116,26 @@ func QueryNetwork(c *gin.Context) {
 				fromto = append(fromto, db.FromTo(p.From, p.To))
 			}
 		}
-		sql := fmt.Sprintf("select * from token_transfer where id in (select max(id) from token_transfer where contract=? and from_to in (%s) group by from_to)", strings.TrimSuffix(strings.Repeat("?,", len(fromto)), ","))
-		fromto = append([]interface{}{strings.ToLower(contract)}, fromto...)
-		if _, err = o.Raw(sql, fromto...).QueryRows(&txs); err != nil {
+		offset := 0
+	LOOP:
+		for {
+			end := offset + 1000
+			if end > len(fromto) {
+				end = len(fromto)
+			}
+			sql := fmt.Sprintf("select * from token_transfer where id in (select max(id) from token_transfer where contract=? and from_to in (%s) group by from_to)", strings.TrimSuffix(strings.Repeat("?,", end-offset), ","))
+			args := append([]interface{}{strings.ToLower(contract)}, fromto[offset:end]...)
+			var ntxs []db.TokenTransfer
+			if _, err = o.Raw(sql, args...).QueryRows(&ntxs); err != nil {
+				break LOOP
+			}
+			txs = append(txs, ntxs...)
+			if end >= len(fromto) {
+				break LOOP
+			}
+			offset += 1000
+		}
+		if err != nil {
 			break
 		}
 		tmEnd = time.Now()
