@@ -7,6 +7,7 @@ import (
 	"github.com/qjpcpu/chainflow/cursor"
 	"github.com/qjpcpu/chainflow/db"
 	"github.com/qjpcpu/chainflow/network"
+	"github.com/qjpcpu/common/redo"
 	"github.com/qjpcpu/ethereum/events"
 	"github.com/qjpcpu/log"
 	"math/big"
@@ -15,8 +16,9 @@ import (
 )
 
 const (
-	erc20Cursor = "ERC20"
-	TransferABI = `[{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"}]`
+	erc20Cursor   = "ERC20"
+	consumeCursor = "Consumer"
+	TransferABI   = `[{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"}]`
 )
 
 type TransferData struct {
@@ -44,7 +46,7 @@ func FetchERC20CoinTransfer() error {
 	dataCh, errCh := make(chan events.Event, 1000), make(chan error, 1)
 	progressCh := make(chan events.Progress, 1)
 	builder := events.NewScanBuilder()
-	rep, err := builder.SetClient(conf.EthConn()).
+	rep1, err := builder.SetClient(conf.EthConn()).
 		SetContract(common.Address{}, TransferABI, "Transfer").
 		SetBlockMargin(2).
 		SetFrom(from).
@@ -57,6 +59,10 @@ func FetchERC20CoinTransfer() error {
 		log.Errorf("fail to start fetcher:%v", err)
 		return err
 	}
+
+	rep2 := redo.PerformSafe(ConsumeTransferRecord, time.Second*5)
+	rep := rep1.Concat(rep2)
+
 	done := rep.WaitChan()
 	updateCursorFunc := func(bn uint64) {
 		redis_conn := db.RedisPool().Get()

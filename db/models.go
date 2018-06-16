@@ -3,6 +3,7 @@ package db
 import (
 	"crypto/md5"
 	"fmt"
+	"math/big"
 	"strings"
 )
 
@@ -44,4 +45,9 @@ func (t *TokenBalance) TableName() string {
 
 func FromTo(from, to string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(strings.ToLower(from)+strings.ToLower(to))))
+}
+
+func (tt *TokenTransfer) BigIntValue() *big.Int {
+	s, _ := new(big.Int).SetString(tt.Value, 10)
+	return s
 }
