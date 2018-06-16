@@ -69,7 +69,7 @@ func FetchERC20CoinTransfer() error {
 		case data := <-dataCh:
 			td := getTransferData(data)
 			td.Save(o)
-			td.UpdateGraph()
+			//		td.UpdateGraph()
 		case err1 := <-errCh:
 			log.Errorf("fetcher receive err:%v", err1)
 		case progress := <-progressCh:
