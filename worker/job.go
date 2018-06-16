@@ -115,9 +115,9 @@ func (td TransferData) Save(o orm.Ormer) error {
 	from := strings.ToLower(td.From)
 	to := strings.ToLower(td.To)
 	if _, err := o.Insert(&db.TokenTransfer{
-		Contract: strings.ToLower(td.Contract),
-		From:     strings.ToLower(td.From),
-		To:       strings.ToLower(td.To),
+		Contract: contract_addr,
+		From:     from,
+		To:       to,
 		FromTo:   db.FromTo(td.From, td.To),
 		Value:    td.Value.String(),
 		Digits:   len(td.Value.String()),
@@ -127,57 +127,57 @@ func (td TransferData) Save(o orm.Ormer) error {
 		return err
 	}
 	// update from
-	if from != "0x0000000000000000000000000000000000000000" {
-		var balance db.TokenBalance
-		if err := o.QueryTable(new(db.TokenBalance)).
-			Filter("contract", contract_addr).
-			Filter("user", from).
-			One(&balance); err != nil {
-			o.Insert(&db.TokenBalance{
-				Contract: contract_addr,
-				User:     from,
-				Amount:   "-" + td.Value.String(),
-				Digits:   len(td.Value.String()),
-				Block:    td.Block,
-			})
-		} else {
-			amount, _ := new(big.Int).SetString(balance.Amount, 10)
-			amount.Sub(amount, td.Value)
-			o.QueryTable(new(db.TokenBalance)).
-				Filter("contract", contract_addr).
-				Filter("user", from).Update(orm.Params{
-				"amount": amount.String(),
-				"digits": len(amount.String()),
-				"block":  td.Block,
-			})
-		}
-	}
+	// if from != "0x0000000000000000000000000000000000000000" {
+	// 	var balance db.TokenBalance
+	// 	if err := o.QueryTable(new(db.TokenBalance)).
+	// 		Filter("contract", contract_addr).
+	// 		Filter("user", from).
+	// 		One(&balance); err != nil {
+	// 		o.Insert(&db.TokenBalance{
+	// 			Contract: contract_addr,
+	// 			User:     from,
+	// 			Amount:   "-" + td.Value.String(),
+	// 			Digits:   len(td.Value.String()),
+	// 			Block:    td.Block,
+	// 		})
+	// 	} else {
+	// 		amount, _ := new(big.Int).SetString(balance.Amount, 10)
+	// 		amount.Sub(amount, td.Value)
+	// 		o.QueryTable(new(db.TokenBalance)).
+	// 			Filter("contract", contract_addr).
+	// 			Filter("user", from).Update(orm.Params{
+	// 			"amount": amount.String(),
+	// 			"digits": len(amount.String()),
+	// 			"block":  td.Block,
+	// 		})
+	// 	}
+	// }
 
 	// update to
-	if to != "0x0000000000000000000000000000000000000000" {
-		var balance db.TokenBalance
-		if err := o.QueryTable(new(db.TokenBalance)).
-			Filter("contract", contract_addr).
-			Filter("user", to).
-			One(&balance); err != nil {
-			o.Insert(&db.TokenBalance{
-				Contract: contract_addr,
-				User:     to,
-				Amount:   td.Value.String(),
-				Digits:   len(td.Value.String()),
-				Block:    td.Block,
-			})
-		} else {
-			amount, _ := new(big.Int).SetString(balance.Amount, 10)
-			amount.Add(amount, td.Value)
-			o.QueryTable(new(db.TokenBalance)).
-				Filter("contract", contract_addr).
-				Filter("user", from).Update(orm.Params{
-				"amount": amount.String(),
-				"digits": len(amount.String()),
-				"block":  td.Block,
-			})
-		}
-	}
+	// if to != "0x0000000000000000000000000000000000000000" {
+	// 	var balance db.TokenBalance
+	// 	if err := o.QueryTable(new(db.TokenBalance)).
+	// 		Filter("contract", contract_addr).
+	// 		Filter("user", to).
+	// 		One(&balance); err != nil {
+	// 		o.Insert(&db.TokenBalance{
+	// 			Contract: contract_addr,
+	// 			User:     to,
+	// 			Amount:   td.Value.String(),
+	// 			Digits:   len(td.Value.String()),
+	// 			Block:    td.Block,
+	// 		})
+	// 	} else {
+	// 		amount, _ := new(big.Int).SetString(balance.Amount, 10)
+	// 		amount.Add(amount, td.Value)
+	// 		o.QueryTable(new(db.TokenBalance)).
+	// 			Filter("contract", contract_addr).
+	// 			Filter("user", from).Update(orm.Params{
+	// 			"amount": amount.String(),
+	// 			"digits": len(amount.String()),
+	// 			"block":  td.Block,
+	// 		})
+	// 	}
+	// }
 	return nil
 }
