@@ -14,6 +14,22 @@ func init() {
 	)
 }
 
+/*
+CREATE TABLE `token_transfer` (
+  `id` bigint(11) unsigned NOT NULL AUTO_INCREMENT,
+  `contract` char(42) DEFAULT '' COMMENT 'ERC20兼容合约地址',
+  `from` char(42) DEFAULT '' COMMENT 'token发送者',
+  `to` char(42) DEFAULT '' COMMENT 'token接收者',
+  `value` varchar(512) DEFAULT '0' COMMENT 'token数量',
+  `digits` bigint(20) DEFAULT '0',
+  `tx` char(66) DEFAULT '' COMMENT '交易',
+  `block` bigint(20) DEFAULT '0' COMMENT '区块',
+  `from_to` varchar(64) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `contract` (`contract`),
+  KEY `from_to` (`from_to`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+*/
 type TokenTransfer struct {
 	Id       uint64 `orm:"pk;auto" json:"-"`
 	Contract string `json:"contract"`
@@ -30,6 +46,18 @@ func (t *TokenTransfer) TableName() string {
 	return "token_transfer"
 }
 
+/*
+CREATE TABLE `token_balance` (
+  `id` bigint(11) unsigned NOT NULL AUTO_INCREMENT,
+  `contract` char(42) DEFAULT '' COMMENT 'ERC20兼容合约地址',
+  `user` char(42) DEFAULT '' COMMENT '用户地址',
+  `amount` varchar(512) DEFAULT '0' COMMENT '当前余额',
+  `digits` bigint(20) DEFAULT '0' COMMENT '十进制位数',
+  `block` bigint(11) DEFAULT '0' COMMENT '当前区块',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `contract` (`contract`,`user`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+*/
 type TokenBalance struct {
 	Id       uint64 `orm:"pk;auto"`
 	Contract string
