@@ -78,6 +78,8 @@ func startServer() {
 		tokenRouter.GET("/network", ctrls.QueryNetwork)
 	}
 
+	router.GET("/huluwa/:id", ctrls.GetHuluwa)
+
 	router.Run(cfg.Listen)
 }
 
