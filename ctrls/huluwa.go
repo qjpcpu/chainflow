@@ -60,6 +60,6 @@ var hulubrothers = map[string]Huluwa{
 }
 
 func GetHuluwa(c *gin.Context) {
-	hlw := hulubrothers[c.Param(":id")]
+	hlw := hulubrothers[c.Param("id")]
 	c.JSON(http.StatusOK, hlw)
 }
